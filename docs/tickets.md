@@ -10,7 +10,10 @@ All work broken into tickets. Copy these into GitHub Projects (or Linear/Trello)
 ## Decision Log
 
 - **May 18 — Reshuffled SETUP order.** SETUP-03b (Tailwind) and SETUP-04 (shadcn) deferred until frontend work resumes. Rationale: these are styling tools not needed for backend work, and the shadcn CLI is unstable enough that installing it ahead of use risks re-doing it later. Doing them right before FE-06+ tickets keeps tool knowledge fresh.
+
+- **May 19 — Locked compression strategy.** Tested plain Ghostscript on real scanned PDFs: 44% reduction on /screen preset. Decision: ship MVP with Ghostscript only (Phase 1), upgrade to full pikepdf+Pillow pipeline as v2 (Phase 2). Rationale: ship working product fast, learn full stack, then improve compression on a deployed app.
 ---
+
 
 ## Epic 1: Project Setup (3.5h)
 
