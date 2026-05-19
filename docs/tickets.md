@@ -4,6 +4,12 @@ All work broken into tickets. Copy these into GitHub Projects (or Linear/Trello)
 
 **Total estimate:** ~46 hours. Add 1.5x buffer → plan for ~70 hours over 2-3 weeks part-time.
 
+
+---
+
+## Decision Log
+
+- **May 18 — Reshuffled SETUP order.** SETUP-03b (Tailwind) and SETUP-04 (shadcn) deferred until frontend work resumes. Rationale: these are styling tools not needed for backend work, and the shadcn CLI is unstable enough that installing it ahead of use risks re-doing it later. Doing them right before FE-06+ tickets keeps tool knowledge fresh.
 ---
 
 ## Epic 1: Project Setup (3.5h)
