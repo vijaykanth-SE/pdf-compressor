@@ -6,10 +6,14 @@ from pathlib import Path
 import subprocess
 from fastapi import Form
 import zipfile
+from fastapi.middleware.cors import CORSMiddleware
 
 
-app = FastAPI(openapi_version="3.0.2")
-
+app = FastAPI()
+app.add_middleware(CORSMiddleware,allow_origins=["http://localhost:5173"],
+                   allow_credentials=True,
+                   allow_methods=["*"],
+                   allow_headers=["*"],)
 #folder to temp hold upload files
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
