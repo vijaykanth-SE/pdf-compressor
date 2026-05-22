@@ -5,9 +5,10 @@ import os
 from pathlib import Path
 import subprocess
 from fastapi import Form
+import zipfile
 
 
-app = FastAPI()
+app = FastAPI(openapi_version="3.0.2")
 
 #folder to temp hold upload files
 UPLOAD_DIR = Path("uploads")
@@ -23,6 +24,8 @@ QUALITY_PRESENTS={
     "high": "/screen",
 }
 
+# Limits
+MAX_FILES = 10
 
 @app.get("/")
 def root():
@@ -55,31 +58,69 @@ def compress_pdf(input_path: Path,output_path: Path, present: str)-> None:
     if result.returncode != 0:
         raise RuntimeError(f"Ghostscript failed: {result.stderr}")
     
+
+
 @app.post("/api/compress")
-async def compress(file: UploadFile = File(...), quality: str = Form("medium")):
-    if not file.filename.lower().endswith(".pdf"):
+async def compress(files: list[UploadFile] = File(...), quality: str = Form("medium")):
+    if not files:
         raise HTTPException(status_code=400, detail="File must be a pdf")
+    
+    if len(files) > MAX_FILES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Maximum {MAX_FILES} files allowed, got {len(files)}",
+        )
     
     if quality not in QUALITY_PRESENTS:
         raise HTTPException(
             status_code=400,
             detail=f"Quality must be one of: {list(QUALITY_PRESENTS.keys())}",
         )
-    #save uploaded file to the disk
-    input_path = UPLOAD_DIR/file.filename
-    with open(input_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    output_path = COMPRESSED_DIR / f"compressed_{file.filename}"
 
     present = QUALITY_PRESENTS[quality]
-    try:
-        compress_pdf(input_path, output_path, present)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    compressed_paths =[]
+
+        # Process each file
+    for file in files:
+        # Validate it's a PDF
+        if not file.filename.lower().endswith(".pdf"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"File '{file.filename}' is not a PDF",
+            )
+
+        # Save upload
+        input_path = UPLOAD_DIR / file.filename
+        with open(input_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        # Build output path
+        output_path = COMPRESSED_DIR / f"compressed_{file.filename}"
+
+        # Compress
+        try:
+            compress_pdf(input_path, output_path, present)
+        except RuntimeError as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+        compressed_paths.append(output_path)
+
+    # If only one file, return it directly (no ZIP)
+    if len(compressed_paths) == 1:
+        return FileResponse(
+            path=compressed_paths[0],
+            media_type="application/pdf",
+            filename=compressed_paths[0].name,
+        )
+
+    # Multiple files: bundle into a ZIP
+    zip_path = COMPRESSED_DIR / "compressed_files.zip"
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in compressed_paths:
+            zf.write(path, arcname=path.name)
 
     return FileResponse(
-        path=output_path,
-        media_type="application/pdf",
-        filename=f"compressed_{file.filename}",
+        path=zip_path,
+        media_type="application/zip",
+        filename="compressed_files.zip",
     )
